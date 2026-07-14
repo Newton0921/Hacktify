@@ -1,0 +1,47 @@
+id: OT-PrabalUrja-Stage2-T0888
+name: OT-PrabalUrja-Stage2-T0888
+description: >
+  Sets up the Prabal Urja Pvt Ltd engineering endpoint challenge environment, configuring a dual-homed workstation with SSH (22/TCP) on the public interface and an anonymous-read OPC UA server (4840/TCP) on the OT-zone interface. This enables the lateral pivot and service fingerprinting attack surface.
+tactic: discovery
+technique_id: T0888
+technique_name: "Remote System Information Discovery"
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []
+---
+id: OT-PrabalUrja-Stage2-T0846
+name: OT-PrabalUrja-Stage2-T0846
+description: >
+  Sets up the Prabal Urja Pvt Ltd engineering endpoint challenge environment, configuring a dual-homed workstation with SSH (22/TCP) on the public interface and an anonymous-read OPC UA server (4840/TCP) on the OT-zone interface. This enables the lateral pivot and service fingerprinting attack surface.
+tactic: discovery
+technique_id: T0846
+technique_name: "Remote System Discovery"
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []
+---
+id: OT-PrabalUrja-Stage2-T0886
+name: OT-PrabalUrja-Stage2-T0886
+description: >
+  Sets up the Prabal Urja Pvt Ltd engineering endpoint challenge environment, configuring a dual-homed workstation with SSH (22/TCP) on the public interface and an anonymous-read OPC UA server (4840/TCP) on the OT-zone interface. This enables the lateral pivot and service fingerprinting attack surface.
+tactic: lateral-movement
+technique_id: T0886
+technique_name: "Remote Services"
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []

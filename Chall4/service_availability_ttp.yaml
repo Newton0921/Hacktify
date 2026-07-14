@@ -1,0 +1,96 @@
+---
+ttp_id: chall4_service_availability
+name: "Stage 4 — RTU Simulator Service Availability"
+description: >
+  Validates that the rtu-server container is running, IEC-104 port 2404
+  is reachable, and the local log file captures simulator cycles.
+
+target_containers:
+  - rtu-server
+
+observed_ttps:
+  - id: T0807
+    name: "Command Generation"
+    relevance: "Validates ability of the RTU to receive and confirm commands."
+  - id: T0888
+    name: "Remote System Information Discovery"
+    relevance: "Validates that the RTU exposes the correct IOA points."
+  - id: T0855
+    name: "Unauthorized Command Message"
+    relevance: "Validates that the RTU actively checks session and SBO selection state."
+
+checks:
+  - id: check_rtu_port
+    name: "IEC-104 TCP port 2404 reachable"
+    type: tcp_port
+    target: "${RTU_IP}"
+    port: 2404
+    protocol: tcp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+  - id: check_container_running
+    name: "rtu-server container running"
+    type: container_status
+    container_name: rtu-server
+    expected_status: running
+    severity: critical
+
+  - id: check_python_process
+    name: "Python RTU process active inside container"
+    type: process_check
+    container_name: rtu-server
+    process_name: python3
+    expected: running
+    severity: critical
+
+  - id: check_log_file_present
+    name: "rtu-server.log present and populated"
+    type: file_exists
+    container_name: rtu-server
+    file_path: /var/log/rtu-server.log
+    expected: exists
+    severity: warning
+
+validation_script: |
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  SHARED_DIR="$(cd "${SCRIPT_DIR}/../shared" && pwd)"
+  RANGE_ENV="${SHARED_DIR}/range.env"
+
+  # Load env vars
+  if [[ -f "$RANGE_ENV" ]]; then
+    source "$RANGE_ENV"
+    export RTU_IP
+  else
+    echo "ERROR: range.env not found" >&2
+    exit 1
+  fi
+
+  PASS=0; FAIL=0; WARN=0
+
+  check() {
+    local name="$1" cmd="$2" severity="${3:-critical}"
+    if eval "$cmd" &>/dev/null; then
+      echo "[PASS] $name"
+      PASS=$((PASS + 1))
+    elif [[ "$severity" == "warning" ]]; then
+      echo "[WARN] $name"
+      WARN=$((WARN + 1))
+    else
+      echo "[FAIL] $name"
+      FAIL=$((FAIL + 1))
+    fi
+  }
+
+  check "Container running" "podman ps --format '{{.Names}}' | grep -q '^rtu-server$'"
+  check "IEC-104 port 2404" "timeout 5 bash -c 'echo >/dev/tcp/\${RTU_IP}/2404'"
+  check "Python process" "podman exec rtu-server sh -c 'grep -q rtu_server.py /proc/1/cmdline'"
+  check "Log file exists" "podman exec rtu-server test -f /var/log/rtu-server.log" "warning"
+
+  echo ""
+  echo "Results: ${PASS} passed, ${FAIL} failed, ${WARN} warnings"
+  [[ $FAIL -eq 0 ]] && exit 0 || exit 1

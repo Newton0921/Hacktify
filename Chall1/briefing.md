@@ -1,0 +1,3 @@
+# Briefing — Prabal Urja Pvt Ltd Adversary Simulation
+
+Prabal Urja Pvt Ltd has engaged your team for an authorized adversary simulation of their power distribution network. The external perimeter features a Linux-based remote access gateway deployed in the DMZ network, serving field technicians and external vendors. Since direct external access to internal environments is restricted, the red teamer's first priority is to establish an initial foothold on this gateway. Resolving this foothold is critical to discovering the authentication mechanisms and network pivots that allow legitimate operators to transition deeper into the facility's internal segments.

@@ -1,0 +1,15 @@
+id: OT-PrabalUrja-Stage4-T0806
+name: OT-PrabalUrja-Stage4-T0806
+description: >
+  Sets up the Prabal Urja Pvt Ltd RTU simulator challenge environment, configuring an IEC 60870-5-104 responder (2404/TCP) with a bounded, per-instance address range. This enables the field-protocol probing attack surface.
+tactic: impair-process-control
+technique_id: T0806
+technique_name: "Brute Force I/O"
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []

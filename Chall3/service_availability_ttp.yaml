@@ -1,0 +1,118 @@
+---
+ttp_id: chall3_service_availability
+name: "Stage 3 — OPC UA Historian Service Availability"
+description: >
+  Validates that the historian-srv container is running, OPC UA port 4840
+  is reachable, and the namespace root is browsable.
+
+target_containers:
+  - historian-srv
+
+observed_ttps:
+  - id: T0802
+    name: "Automated Collection"
+    relevance: "Recursive namespace enumeration to collect all tag data"
+  - id: T0861
+    name: "Point & Tag Identification"
+    relevance: "Identifying privileged configuration tags among telemetry decoys"
+  - id: T0888
+    name: "Remote System Information Discovery"
+    relevance: "Discovering historian service and its OPC UA namespace structure"
+
+checks:
+  - id: check_opcua_port
+    name: "OPC UA TCP port 4840 reachable"
+    type: tcp_port
+    target: "${HISTORIAN_IP}"
+    port: 4840
+    protocol: tcp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+  - id: check_container_running
+    name: "historian-srv container running"
+    type: container_status
+    container_name: historian-srv
+    expected_status: running
+    severity: critical
+
+  - id: check_python_process
+    name: "Python historian process active inside container"
+    type: process_check
+    container_name: historian-srv
+    process_name: python3
+    expected: running
+    severity: critical
+
+  - id: check_flag_generated
+    name: "Stage 3 flag file present"
+    type: file_exists
+    container_name: historian-srv
+    file_path: /run/ctf/stage3_flag
+    expected: exists
+    severity: critical
+
+  - id: check_namespace_browsable
+    name: "OPC UA namespace root browsable"
+    type: custom_script
+    description: >
+      Connects to OPC UA endpoint and verifies Objects node
+      has at least one child (the namespace prefix folder).
+    severity: critical
+
+validation_script: |
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  SHARED_DIR="$(cd "${SCRIPT_DIR}/../shared" && pwd)"
+  RANGE_ENV="${SHARED_DIR}/range.env"
+
+  # Load env vars
+  if [[ -f "$RANGE_ENV" ]]; then
+    source "$RANGE_ENV"
+    export HISTORIAN_IP
+  else
+    echo "ERROR: range.env not found" >&2
+    exit 1
+  fi
+
+  PASS=0; FAIL=0; WARN=0
+
+  check() {
+    local name="$1" cmd="$2" severity="${3:-critical}"
+    if eval "$cmd" &>/dev/null; then
+      echo "[PASS] $name"
+      PASS=$((PASS + 1))
+    elif [[ "$severity" == "warning" ]]; then
+      echo "[WARN] $name"
+      WARN=$((WARN + 1))
+    else
+      echo "[FAIL] $name"
+      FAIL=$((FAIL + 1))
+    fi
+  }
+
+  check "Container running" "podman ps --format '{{.Names}}' | grep -q '^historian-srv$'"
+  check "OPC UA port 4840" "timeout 5 bash -c 'echo >/dev/tcp/\${HISTORIAN_IP}/4840'"
+  check "Python process" "podman exec historian-srv sh -c 'grep -q historian_server.py /proc/1/cmdline'"
+  check "Flag file" "podman exec historian-srv test -f /run/ctf/stage3_flag"
+  
+  # Browse check inside container to verify server is active and namespace is populated
+  BROWSE_CMD="podman exec historian-srv python3 -c \"
+  import asyncio
+  from asyncua import Client
+  async def test():
+      c = Client('opc.tcp://127.0.0.1:4840/prabalurja/historian')
+      async with c:
+          root = c.get_objects_node()
+          children = await root.get_children()
+          assert len(children) >= 2
+  asyncio.run(test())
+  \""
+  check "OPC UA Namespace Browsable" "${BROWSE_CMD}"
+
+  echo ""
+  echo "Results: ${PASS} passed, ${FAIL} failed, ${WARN} warnings"
+  [[ $FAIL -eq 0 ]] && exit 0 || exit 1

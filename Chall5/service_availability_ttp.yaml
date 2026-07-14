@@ -1,0 +1,110 @@
+---
+ttp_id: chall5_service_availability
+name: "Stage 5 — Substation GW and Bay Controller Service Availability"
+description: >
+  Validates that substation-gw container is running with SSH port 22 reachable,
+  and bay-controller is running with MMS port 102 and SCIL legacy scripting
+  port 9022 active.
+
+target_containers:
+  - substation-gw
+  - bay-controller
+
+observed_ttps:
+  - id: T0886
+    name: "Remote Services"
+    relevance: "SSH pivot into substation-gw using valid tech credentials."
+  - id: T0888
+    name: "Remote System Information Discovery"
+    relevance: "Querying active logical nodes and configuration revision from MMS service."
+  - id: T1692.001
+    name: "Adversary-in-the-Middle"
+    relevance: "Injecting layer-2 GOOSE commands on process zone and sending uploaded scripts."
+  - id: T0831
+    name: "Modify Parameter"
+    relevance: "Altering the config revision or breaker sequence control fields."
+  - id: T0894
+    name: "Scripting"
+    relevance: "Uploading SCIL control scripts to trigger operations."
+  - id: T0895
+    name: "System Firmware"
+    relevance: "Leveraging legacy device execution commands."
+  - id: T0853
+    name: "Unauthorized Command Message"
+    relevance: "Sending unauthenticated commands via legacy SCIL scripting port."
+  - id: T0807
+    name: "Command Generation"
+    relevance: "Synthesizing valid binary L2 GOOSE multicast frames to trip the breaker."
+
+checks:
+  - id: check_gw_ssh
+    name: "substation-gw SSH port 22 reachable"
+    type: tcp_port
+    target: "10.100.2.254"
+    port: 22
+    protocol: tcp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+  - id: check_bc_mms
+    name: "bay-controller MMS port 102 reachable"
+    type: tcp_port
+    target: "10.100.2.10"
+    port: 102
+    protocol: tcp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+  - id: check_bc_legacy
+    name: "bay-controller legacy scripting port 9022 reachable"
+    type: tcp_port
+    target: "10.100.2.10"
+    port: 9022
+    protocol: tcp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+validation_script: |
+  #!/usr/bin/env bash
+  set -euo pipefail
+
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  SHARED_DIR="$(cd "${SCRIPT_DIR}/../shared" && pwd)"
+  RANGE_ENV="${SHARED_DIR}/range.env"
+
+  # Load env vars
+  if [[ -f "$RANGE_ENV" ]]; then
+    source "$RANGE_ENV"
+  else
+    echo "ERROR: range.env not found" >&2
+    exit 1
+  fi
+
+  PASS=0; FAIL=0; WARN=0
+
+  check() {
+    local name="$1" cmd="$2" severity="${3:-critical}"
+    if eval "$cmd" &>/dev/null; then
+      echo "[PASS] $name"
+      PASS=$((PASS + 1))
+    elif [[ "$severity" == "warning" ]]; then
+      echo "[WARN] $name"
+      WARN=$((WARN + 1))
+    else
+      echo "[FAIL] $name"
+      FAIL=$((FAIL + 1))
+    fi
+  }
+
+  check "substation-gw running" "podman ps --format '{{.Names}}' | grep -q '^substation-gw$'"
+  check "bay-controller running" "podman ps --format '{{.Names}}' | grep -q '^bay-controller$'"
+  check "substation-gw SSH reachable" "timeout 5 bash -c 'echo >/dev/tcp/10.100.2.254/22'"
+  check "bay-controller MMS reachable" "timeout 5 bash -c 'echo >/dev/tcp/10.100.2.10/102'"
+  check "bay-controller legacy SCIL reachable" "timeout 5 bash -c 'echo >/dev/tcp/10.100.2.10/9022'"
+
+  echo ""
+  echo "Results: ${PASS} passed, ${FAIL} failed, ${WARN} warnings"
+  [[ $FAIL -eq 0 ]] && exit 0 || exit 1

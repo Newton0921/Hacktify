@@ -1,0 +1,49 @@
+# vpn-gateway — Podman Compose Fragment
+#
+# This fragment defines the vpn-gateway service for Stage 1.
+# All network addresses are sourced from environment variables
+# set by provision.sh / setup.sh — no hardcoded literals.
+#
+# To be included by the top-level podman-compose.yml or used standalone.
+---
+version: "3.8"
+
+services:
+  vpn-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vpn-gateway
+    hostname: vpn-gateway
+    env_file:
+      - ../shared/env/vpn-gateway.env
+    secrets:
+      - ctf_seed
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "1194:1194/udp"
+      - "2222:22/tcp"
+    networks:
+      public_zone_net:
+        ipv4_address: "${PUBLIC_ZONE_GATEWAY_IP}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "sshd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  public_zone_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${PUBLIC_ZONE_SUBNET}"
+
+secrets:
+  ctf_seed:
+    external: true

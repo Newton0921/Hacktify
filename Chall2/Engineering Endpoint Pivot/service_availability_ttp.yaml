@@ -1,0 +1,152 @@
+---
+# ===========================================================================
+# Service Availability TTP — Stage 2: Engineering Endpoint Pivot
+# Health checks for the ews-node container services.
+#
+# Observed TTPs (ICS MITRE ATT&CK technique IDs):
+#   T0886 — Lateral Tool Transfer
+#   T0846 — Resource Development
+#   T0888 — Cloud Service Discovery
+# ===========================================================================
+
+ttp_id: chall2_service_availability
+name: "Stage 2 — Engineering Workstation Service Availability"
+description: >
+  Validates that the ews-node container is running, its exposed SSH
+  and OPC UA services are reachable and responding correctly, and the
+  OPC UA GetEndpoints query succeeds.
+
+target_containers:
+  - ews-node
+
+observed_ttps:
+  - id: T0886
+    name: "Lateral Tool Transfer"
+    relevance: "Pivot through EWS endpoint dual-homed network interface"
+  - id: T0846
+    name: "Resource Development"
+    relevance: "Read ProductUri BuildInfo value from OPC UA server status"
+  - id: T0888
+    name: "Cloud Service Discovery"
+    relevance: "Discovery and browse scan of EWS OPC UA server endpoints"
+
+checks:
+  - id: check_ssh_port
+    name: "SSH TCP port reachable"
+    type: tcp_port
+    target: "${EWS_PUBLIC_IP}"
+    port: 22
+    protocol: tcp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+  - id: check_opcua_port
+    name: "OPC UA port reachable"
+    type: tcp_port
+    target: "${EWS_IP}"
+    port: 4840
+    protocol: tcp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+  - id: check_opcua_getendpoints
+    name: "OPC UA GetEndpoints response"
+    type: custom_check
+    description: "Verify OPC UA server responds to GetEndpoints query"
+    severity: critical
+
+  - id: check_container_running
+    name: "ews-node container running"
+    type: container_status
+    container_name: ews-node
+    expected_status: running
+    severity: critical
+
+  - id: check_sshd_process
+    name: "SSHD process active inside container"
+    type: process_check
+    container_name: ews-node
+    process_name: sshd
+    expected: running
+    severity: critical
+
+  - id: check_opcua_process
+    name: "OPC UA server process active inside container"
+    type: process_check
+    container_name: ews-node
+    process_name: python3
+    expected: running
+    severity: critical
+
+  - id: check_flag_generated
+    name: "Stage 2 flag file present"
+    type: file_exists
+    container_name: ews-node
+    file_path: /run/ctf/stage2_flag
+    expected: exists
+    severity: critical
+
+validation_script: |
+  #!/usr/bin/env bash
+  set -euo pipefail
+  
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  SHARED_DIR="$(cd "${SCRIPT_DIR}/../../shared" && pwd)"
+  RANGE_ENV="${SHARED_DIR}/range.env"
+  
+  # Load env vars
+  if [[ -f "$RANGE_ENV" ]]; then
+    source "$RANGE_ENV"
+  else
+    echo "ERROR: range.env not found" >&2
+    exit 1
+  fi
+  
+  # CIDR math helpers
+  ip_to_int() {
+      local a b c d
+      IFS='.' read -r a b c d <<< "$1"
+      echo $(( (a << 24) + (b << 16) + (c << 8) + d ))
+  }
+  
+  int_to_ip() {
+      local n=$1
+      echo "$(( (n >> 24) & 255 )).$(( (n >> 16) & 255 )).$(( (n >> 8) & 255 )).$(( n & 255 ))"
+  }
+  
+  nth_host() {
+      local cidr="$1" n="$2"
+      local base_ip="${cidr%/*}"
+      local base_int
+      base_int=$(ip_to_int "$base_ip")
+      echo "$(int_to_ip $(( base_int + n )))"
+  }
+  
+  EWS_PUBLIC_IP=$(nth_host "${PUBLIC_ZONE_SUBNET}" 3)
+  
+  PASS=0; FAIL=0; WARN=0
+  
+  check() {
+    local name="$1" cmd="$2" severity="${3:-critical}"
+    if eval "$cmd" &>/dev/null; then
+      echo "[PASS] $name"; ((PASS++))
+    elif [[ "$severity" == "warning" ]]; then
+      echo "[WARN] $name"; ((WARN++))
+    else
+      echo "[FAIL] $name"; ((FAIL++))
+    fi
+  }
+  
+  check "Container running" "podman ps --format '{{.Names}}' | grep -q '^ews-node$'"
+  check "SSH port 22" "timeout 5 bash -c 'echo >/dev/tcp/${EWS_PUBLIC_IP}/22'"
+  check "OPC UA port 4840" "timeout 5 bash -c 'echo >/dev/tcp/${EWS_IP}/4840'"
+  check "OPC UA GetEndpoints" "podman exec ews-node python3 -c \"import asyncio; from asyncua import Client; asyncio.run(Client('opc.tcp://${EWS_IP}:4840/freeopcua/server/').connect())\""
+  check "SSHD process" "podman exec ews-node pgrep sshd"
+  check "OPC UA server process" "podman exec ews-node pgrep python3"
+  check "Flag file" "podman exec ews-node test -f /run/ctf/stage2_flag"
+  
+  echo ""
+  echo "Results: ${PASS} passed, ${FAIL} failed, ${WARN} warnings"
+  [[ $FAIL -eq 0 ]] && exit 0 || exit 1

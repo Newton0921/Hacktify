@@ -1,0 +1,62 @@
+{
+  "range_base_cidr": "10.100.0.0/22",
+  "generated_at": "2026-07-01T08:24:48Z",
+  "artifacts": {
+    "INSTANCE_SEED": {
+      "generation": "openssl rand -hex 32",
+      "delivered_to": "all containers (Podman secret ctf_seed)",
+      "precomputable": true
+    },
+    "zone_subnets": {
+      "PUBLIC_ZONE_SUBNET": "10.100.0.0/24",
+      "OT_ZONE_SUBNET": "10.100.1.0/24",
+      "STATION_ZONE_SUBNET": "10.100.2.0/24",
+      "PROCESS_ZONE_SUBNET": "10.100.3.0/24",
+      "generation": "deterministic subdivision of RANGE_BASE_CIDR",
+      "delivered_to": "all containers via per-container .env"
+    },
+    "FIELD_ACCT_HASH": {
+      "generation": "HMAC-SHA256 derived salt from INSTANCE_SEED",
+      "delivered_to": "vpn-gateway",
+      "env_var": "FIELD_ACCT_HASH"
+    },
+    "ENGSTATION_ID": {
+      "generation": "random per instance",
+      "delivered_to": "ews-node",
+      "env_var": "ENGSTATION_ID"
+    },
+    "TAG_NAMESPACE_PREFIX": {
+      "generation": "random plausible fictional label",
+      "delivered_to": "historian-srv",
+      "env_var": "TAG_NAMESPACE_PREFIX"
+    },
+    "RTU_CONFIG": {
+      "ASDU_ADDR_DESC": "196",
+      "TARGET_IOA": "2947",
+      "IOA_END": "3146",
+      "generation": "random offset within safe range",
+      "delivered_to": ["historian-srv", "rtu-server"]
+    },
+    "SCIL_EXPECTED_IOA": {
+      "value": "2947",
+      "generation": "same as TARGET_IOA",
+      "delivered_to": "bay-controller",
+      "env_var": "SCIL_EXPECTED_IOA"
+    },
+    "GOOSE_CONFIG": {
+      "GOOSE_CONF_REV": "7366",
+      "GOOSE_APPID": "0x8A04",
+      "generation": "random per instance",
+      "delivered_to": "bay-controller"
+    }
+  },
+  "flags": {
+    "S1":  {"precomputable": true,  "stage": 1, "description": "Gateway credential file access"},
+    "S2":  {"precomputable": true,  "stage": 2, "description": "Engineering workstation pivot"},
+    "S3":  {"precomputable": true,  "stage": 3, "description": "Historian data extraction"},
+    "S4":  {"precomputable": true,  "stage": 4, "description": "RTU protocol manipulation"},
+    "S4b": {"precomputable": false, "stage": 4, "description": "Bay controller lateral move (lazy)"},
+    "S5A": {"precomputable": false, "stage": 5, "description": "Process zone initial access (lazy)"},
+    "S5B": {"precomputable": false, "stage": 5, "description": "Process zone objective (lazy)"}
+  }
+}

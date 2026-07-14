@@ -1,0 +1,124 @@
+---
+# ===========================================================================
+# Service Availability TTP — Stage 1: VPN Gateway
+# Health checks for the vpn-gateway container services.
+#
+# Observed TTPs (ICS MITRE ATT&CK technique IDs):
+#   T0822 — External Remote Services
+#   T0859 — Valid Accounts
+# ===========================================================================
+
+ttp_id: chall1_service_availability
+name: "Stage 1 — VPN Gateway Service Availability"
+description: >
+  Validates that the vpn-gateway container is running and its exposed
+  services (OpenVPN, SSH) are reachable and responding correctly.
+
+target_containers:
+  - vpn-gateway
+
+observed_ttps:
+  - id: T0822
+    name: "External Remote Services"
+    relevance: "VPN and SSH endpoints accessible from external zone"
+  - id: T0859
+    name: "Valid Accounts"
+    relevance: "Pre-provisioned field technician account with password auth"
+
+checks:
+  - id: check_openvpn_port
+    name: "OpenVPN UDP port reachable"
+    type: udp_port
+    target: "${PUBLIC_ZONE_GATEWAY_IP}"
+    port: 1194
+    protocol: udp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+  - id: check_ssh_port
+    name: "SSH TCP port reachable"
+    type: tcp_port
+    target: "127.0.0.1"
+    port: 2222
+    protocol: tcp
+    timeout_seconds: 5
+    expected: reachable
+    severity: critical
+
+  - id: check_ssh_banner
+    name: "SSH banner verification"
+    type: banner_check
+    target: "127.0.0.1"
+    port: 2222
+    protocol: tcp
+    timeout_seconds: 5
+    expected_substring: "SSH-2.0-OpenSSH"
+    severity: warning
+
+  - id: check_container_running
+    name: "vpn-gateway container running"
+    type: container_status
+    container_name: vpn-gateway
+    expected_status: running
+    severity: critical
+
+  - id: check_openvpn_process
+    name: "OpenVPN process active inside container"
+    type: process_check
+    container_name: vpn-gateway
+    process_name: openvpn
+    expected: running
+    severity: critical
+
+  - id: check_sshd_process
+    name: "SSHD process active inside container"
+    type: process_check
+    container_name: vpn-gateway
+    process_name: sshd
+    expected: running
+    severity: critical
+
+  - id: check_flag_generated
+    name: "Stage 1 flag file present"
+    type: file_exists
+    container_name: vpn-gateway
+    file_path: /run/ctf/stage1_flag
+    expected: exists
+    severity: critical
+
+  - id: check_artifact_file
+    name: "field_accounts.conf present and non-empty"
+    type: file_exists
+    container_name: vpn-gateway
+    file_path: /etc/openvpn/server/field_accounts.conf
+    expected: exists
+    severity: critical
+
+validation_script: |
+  #!/usr/bin/env bash
+  set -euo pipefail
+  PASS=0; FAIL=0; WARN=0
+
+  check() {
+    local name="$1" cmd="$2" severity="${3:-critical}"
+    if eval "$cmd" &>/dev/null; then
+      echo "[PASS] $name"; ((PASS++))
+    elif [[ "$severity" == "warning" ]]; then
+      echo "[WARN] $name"; ((WARN++))
+    else
+      echo "[FAIL] $name"; ((FAIL++))
+    fi
+  }
+
+  check "Container running" "podman ps --format '{{.Names}}' | grep -q '^vpn-gateway$'"
+  check "SSH port 2222" "timeout 5 bash -c 'echo >/dev/tcp/127.0.0.1/2222'"
+  check "SSH banner" "echo '' | timeout 5 nc 127.0.0.1 2222 | grep -q 'SSH-2.0-OpenSSH'" "warning"
+  check "OpenVPN process" "podman exec vpn-gateway pgrep openvpn"
+  check "SSHD process" "podman exec vpn-gateway pgrep sshd"
+  check "Flag file" "podman exec vpn-gateway test -f /run/ctf/stage1_flag"
+  check "Artifact file" "podman exec vpn-gateway test -s /etc/openvpn/server/field_accounts.conf"
+
+  echo ""
+  echo "Results: ${PASS} passed, ${FAIL} failed, ${WARN} warnings"
+  [[ $FAIL -eq 0 ]] && exit 0 || exit 1

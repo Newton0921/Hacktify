@@ -1,0 +1,149 @@
+# ===========================================================================
+# Prabal Urja Pvt Ltd — OT/ICS Red-Team Range
+# Top-Level Podman Compose — All 6 Containers, All 4 Zones
+#
+# All subnet/IP values are sourced from environment variables written by
+# setup.sh (Stage 1 provisioner) into ../shared/range.env.
+#
+# To deploy:
+#   source ../shared/range.env
+#   podman-compose up -d
+#
+# No hardcoded IP/subnet literals anywhere in this file.
+# ===========================================================================
+---
+version: "3.8"
+
+services:
+  # ---- Stage 1: Public/Remote-Access Zone ----
+  vpn-gateway:
+    build:
+      context: ./vpn-gateway
+      dockerfile: Dockerfile
+    container_name: vpn-gateway
+    hostname: vpn-gateway
+    env_file:
+      - ../shared/env/vpn-gateway.env
+    secrets:
+      - ctf_seed
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "1194:1194/udp"
+      - "2222:22/tcp"
+    networks:
+      public_zone_net:
+        ipv4_address: "${PUBLIC_ZONE_GATEWAY_IP}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "sshd"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---- Stage 2: Engineering Workstation (Station Zone) ----
+  # Stub — implemented by Chall2/setup.sh
+  ews-node:
+    image: alpine:3.20
+    container_name: ews-node
+    hostname: ews-node
+    env_file:
+      - ../shared/env/ews-node.env
+    command: ["sleep", "infinity"]
+    networks:
+      station_zone_net:
+        ipv4_address: "${EWS_IP}"
+    restart: unless-stopped
+
+  # ---- Stage 3: Historian Server (OT Zone) ----
+  # Stub — implemented by Chall3/setup.sh
+  historian-srv:
+    image: alpine:3.20
+    container_name: historian-srv
+    hostname: historian-srv
+    env_file:
+      - ../shared/env/historian-srv.env
+    command: ["sleep", "infinity"]
+    networks:
+      ot_zone_net:
+        ipv4_address: "${HISTORIAN_IP}"
+    restart: unless-stopped
+
+  # ---- Stage 4: RTU Server (OT Zone) ----
+  # Stub — implemented by Chall4/setup.sh
+  rtu-server:
+    image: alpine:3.20
+    container_name: rtu-server
+    hostname: rtu-server
+    env_file:
+      - ../shared/env/rtu-server.env
+    command: ["sleep", "infinity"]
+    networks:
+      ot_zone_net:
+        ipv4_address: "${RTU_IP}"
+    restart: unless-stopped
+
+  # ---- Stage 4/5: Bay Controller (Process Zone) ----
+  # Stub — implemented by Chall4-5/setup.sh
+  bay-controller:
+    image: alpine:3.20
+    container_name: bay-controller
+    hostname: bay-controller
+    env_file:
+      - ../shared/env/bay-controller.env
+    command: ["sleep", "infinity"]
+    networks:
+      process_zone_net:
+        ipv4_address: "${BAY_CONTROLLER_IP}"
+    restart: unless-stopped
+
+  # ---- OT Zone Gateway / Jump Host ----
+  # Stub — bridges public zone to OT zone after Stage 1 completion
+  jump-host:
+    image: alpine:3.20
+    container_name: jump-host
+    hostname: jump-host
+    env_file:
+      - ../shared/env/jump-host.env
+    command: ["sleep", "infinity"]
+    networks:
+      public_zone_net: {}
+      ot_zone_net:
+        ipv4_address: "${OT_ZONE_GATEWAY_IP}"
+    restart: unless-stopped
+
+networks:
+  # Public/Remote-Access Zone — bridge, isolated (no internet egress)
+  public_zone_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${PUBLIC_ZONE_SUBNET}"
+
+  # OT Zone — bridge, isolated
+  ot_zone_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${OT_ZONE_SUBNET}"
+
+  # Station Zone — bridge, isolated
+  station_zone_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${STATION_ZONE_SUBNET}"
+
+  # Process Zone — macvlan for Stage 5 (GOOSE/process-level traffic)
+  process_zone_net:
+    driver: macvlan
+    ipam:
+      config:
+        - subnet: "${PROCESS_ZONE_SUBNET}"
+
+secrets:
+  ctf_seed:
+    external: true

@@ -1,0 +1,31 @@
+id: OT-PrabalUrja-Stage1-T0822
+name: OT-PrabalUrja-Stage1-T0822
+description: >
+  Sets up the Prabal Urja Pvt Ltd remote access gateway challenge environment, configuring and starting OpenVPN (1194/UDP) and OpenSSH (2222/TCP) with a preconfigured field_tech account, and generating a per-instance client-connect.ovpn profile. This enables the initial-access attack surface.
+tactic: initial-access
+technique_id: T0822
+technique_name: "External Remote Services"
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []
+---
+id: OT-PrabalUrja-Stage1-T0859
+name: OT-PrabalUrja-Stage1-T0859
+description: >
+  Sets up the Prabal Urja Pvt Ltd remote access gateway challenge environment, configuring and starting OpenVPN (1194/UDP) and OpenSSH (2222/TCP) with a preconfigured field_tech account, and generating a per-instance client-connect.ovpn profile. This enables the initial-access attack surface.
+tactic: initial-access
+technique_id: T0859
+technique_name: "Valid Accounts"
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []

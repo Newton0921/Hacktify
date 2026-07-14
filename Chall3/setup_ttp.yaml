@@ -1,0 +1,31 @@
+id: OT-PrabalUrja-Stage3-T0802
+name: OT-PrabalUrja-Stage3-T0802
+description: >
+  Sets up the Prabal Urja Pvt Ltd historian challenge environment, configuring an OPC UA server (4840/TCP) with a deep decoy tag namespace and one privileged configuration node. This enables the data-harvesting and tag-identification attack surface.
+tactic: collection
+technique_id: T0802
+technique_name: "Automated Collection"
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []
+---
+id: OT-PrabalUrja-Stage3-T0861
+name: OT-PrabalUrja-Stage3-T0861
+description: >
+  Sets up the Prabal Urja Pvt Ltd historian challenge environment, configuring an OPC UA server (4840/TCP) with a deep decoy tag namespace and one privileged configuration node. This enables the data-harvesting and tag-identification attack surface.
+tactic: collection
+technique_id: T0861
+technique_name: "Point & Tag Identification"
+sub_technique: None
+tag: red
+executors:
+  - name: sh
+    platform: linux
+    command: echo 'Setup Successfully'
+    payloads: []
+    parsers: []
