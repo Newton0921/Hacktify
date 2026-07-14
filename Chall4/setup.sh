@@ -40,12 +40,12 @@ info "  - OT_ZONE_SUBNET:${OT_ZONE_SUBNET}"
 
 # 2. Build the rtu-server image
 info "Building rtu-server container image..."
-podman build -t rtu-server:latest "${SCRIPT_DIR}/rtu-server"
+sudo -E podman build --network host -t rtu-server:latest "${SCRIPT_DIR}/rtu-server"
 
 # 3. Create OT network if not exists
-if ! podman network exists ot_zone_net; then
+if ! sudo -E podman network exists ot_zone_net; then
     info "Creating network ot_zone_net with subnet ${OT_ZONE_SUBNET}..."
-    podman network create --subnet="${OT_ZONE_SUBNET}" ot_zone_net
+    sudo -E podman network create --subnet="${OT_ZONE_SUBNET}" ot_zone_net
 else
     info "Network ot_zone_net already exists"
 fi
@@ -66,15 +66,15 @@ EOF
 chmod 600 "${ENV_FILE}"
 
 # 5. Clean up old container if running
-if podman ps -a --format '{{.Names}}' | grep -q '^rtu-server$'; then
+if sudo -E podman ps -a --format '{{.Names}}' | grep -q '^rtu-server$'; then
     warn "Removing existing rtu-server container..."
-    podman stop rtu-server 2>/dev/null || true
-    podman rm rtu-server 2>/dev/null || true
+    sudo -E podman stop rtu-server 2>/dev/null || true
+    sudo -E podman rm rtu-server 2>/dev/null || true
 fi
 
 # 6. Run the container
 info "Running rtu-server container on ${RTU_IP}..."
-podman run -d \
+sudo -E podman run -d \
     --name rtu-server \
     --network ot_zone_net \
     --ip "${RTU_IP}" \
@@ -83,9 +83,9 @@ podman run -d \
     rtu-server:latest
 
 # Ensure ews-node is connected to ot_zone_net
-if podman ps --format '{{.Names}}' | grep -q '^ews-node$'; then
+if sudo -E podman ps --format '{{.Names}}' | grep -q '^ews-node$'; then
     info "Ensuring ews-node is connected to ot_zone_net..."
-    podman network connect ot_zone_net ews-node 2>/dev/null || true
+    sudo -E podman network connect ot_zone_net ews-node --ip "10.100.1.254" 2>/dev/null || true
 fi
 
 # 7. Generate Assessment Spreadsheet
@@ -96,12 +96,12 @@ python3 "${SCRIPT_DIR}/generate_assessment.py"
 info "Verifying rtu-server deployment..."
 sleep 2
 
-if ! podman ps --format '{{.Names}}' | grep -q '^rtu-server$'; then
+if ! sudo -E podman ps --format '{{.Names}}' | grep -q '^rtu-server$'; then
     die "rtu-server container failed to start."
 fi
 
 # Verify port 2404 is open internally (use python since ss may not be installed)
-if ! podman exec rtu-server python3 -c "
+if ! sudo -E podman exec rtu-server python3 -c "
 import socket, sys
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:

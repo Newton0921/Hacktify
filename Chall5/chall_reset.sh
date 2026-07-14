@@ -21,10 +21,10 @@ info "=== Stage 5 Reset — Substation Gateway & Bay Controller ==="
 
 # Stop and remove containers
 for name in substation-gw bay-controller; do
-    if podman ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
+    if sudo -E podman ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
         info "Stopping ${name} container..."
-        podman stop "${name}" 2>/dev/null || true
-        podman rm "${name}" 2>/dev/null || true
+        sudo -E podman stop "${name}" 2>/dev/null || true
+        sudo -E podman rm "${name}" 2>/dev/null || true
         info "${name} removed."
     else
         info "${name} container not found — nothing to stop."
@@ -42,9 +42,9 @@ if ip link show dummy0 &>/dev/null 2>&1; then
     sudo ip link delete dummy0 2>/dev/null || true
 fi
 
-if podman network exists process_zone_net; then
+if sudo -E podman network exists process_zone_net; then
     info "Removing Podman process_zone_net network..."
-    podman network rm process_zone_net || echo arch | sudo -S podman network rm process_zone_net
+    sudo -E podman network rm process_zone_net || echo arch | sudo -S podman network rm process_zone_net
 fi
 
 

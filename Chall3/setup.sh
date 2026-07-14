@@ -72,6 +72,11 @@ for var in INSTANCE_SEED OT_ZONE_SUBNET HISTORIAN_IP TAG_NAMESPACE_PREFIX ASDU_A
     [[ -n "${!var:-}" ]] || die "${var} not set in range.env"
 done
 
+if ! sudo -E podman secret inspect ctf_seed &>/dev/null; then
+    info "Creating Podman secret 'ctf_seed' from range.env"
+    echo -n "${INSTANCE_SEED}" | sudo -E podman secret create ctf_seed -
+fi
+
 info "=== Prabal Urja Pvt Ltd — Stage 3: OPC UA Historian ==="
 echo ""
 info "Configuration:"
@@ -396,13 +401,13 @@ deploy_historian() {
     ot_gw=$(nth_host "${OT_ZONE_SUBNET}" 1)
 
     # Stop/remove existing
-    podman stop historian-srv 2>/dev/null || true
-    podman rm historian-srv 2>/dev/null || true
+    sudo -E podman stop historian-srv 2>/dev/null || true
+    sudo -E podman rm historian-srv 2>/dev/null || true
 
     # Create OT zone network if it doesn't already exist
-    if ! podman network inspect "${ot_net_name}" &>/dev/null; then
+    if ! sudo -E podman network inspect "${ot_net_name}" &>/dev/null; then
         info "Creating Podman bridge network: ${ot_net_name} (${OT_ZONE_SUBNET})"
-        podman network create \
+        sudo -E podman network create \
             --driver bridge \
             --subnet "${OT_ZONE_SUBNET}" \
             --gateway "${ot_gw}" \
@@ -413,7 +418,7 @@ deploy_historian() {
 
     # Build container image
     info "Building historian-srv container image..."
-    podman build --network host -t historian-srv:latest "${HISTORIAN_DIR}/"
+    sudo -E podman build --network host -t historian-srv:latest "${HISTORIAN_DIR}/"
 
     # Prepare env file for this container
     local env_file="${SHARED_DIR}/env/historian-srv.env"
@@ -432,7 +437,7 @@ ENVEOF
 
     # Start historian-srv container
     info "Starting historian-srv container at ${HISTORIAN_IP} on port 4840/TCP"
-    podman run -d \
+    sudo -E podman run -d \
         --name historian-srv \
         --hostname historian-srv \
         --network "${ot_net_name}:ip=${HISTORIAN_IP}" \
@@ -455,7 +460,7 @@ ENVEOF
 
     # Verify flag was generated
     local flag_check
-    flag_check=$(podman exec historian-srv cat /run/ctf/stage3_flag 2>/dev/null) || true
+    flag_check=$(sudo -E podman exec historian-srv cat /run/ctf/stage3_flag 2>/dev/null) || true
     if [[ -n "${flag_check}" ]]; then
         info "Stage 3 flag verified (stored inside container at /run/ctf/stage3_flag)"
     else

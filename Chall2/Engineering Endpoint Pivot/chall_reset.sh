@@ -20,10 +20,10 @@ die()   { err "$@"; exit 1; }
 info "=== Stage 2 Reset ==="
 
 # Stop and remove ews-node container
-if podman ps -a --format '{{.Names}}' | grep -q '^ews-node$'; then
+if sudo -E podman ps -a --format '{{.Names}}' | grep -q '^ews-node$'; then
     info "Stopping ews-node container..."
-    podman stop ews-node 2>/dev/null || true
-    podman rm ews-node 2>/dev/null || true
+    sudo -E podman stop ews-node 2>/dev/null || true
+    sudo -E podman rm ews-node 2>/dev/null || true
     info "ews-node removed"
 else
     info "ews-node container not found — nothing to stop"

@@ -139,13 +139,13 @@ validation_script: |
     fi
   }
   
-  check "Container running" "podman ps --format '{{.Names}}' | grep -q '^ews-node$'"
+  check "Container running" "sudo -E podman ps --format '{{.Names}}' | grep -q '^ews-node$'"
   check "SSH port 22" "timeout 5 bash -c 'echo >/dev/tcp/${EWS_PUBLIC_IP}/22'"
   check "OPC UA port 4840" "timeout 5 bash -c 'echo >/dev/tcp/${EWS_IP}/4840'"
-  check "OPC UA GetEndpoints" "podman exec ews-node python3 -c \"import asyncio; from asyncua import Client; asyncio.run(Client('opc.tcp://${EWS_IP}:4840/freeopcua/server/').connect())\""
-  check "SSHD process" "podman exec ews-node pgrep sshd"
-  check "OPC UA server process" "podman exec ews-node pgrep python3"
-  check "Flag file" "podman exec ews-node test -f /run/ctf/stage2_flag"
+  check "OPC UA GetEndpoints" "sudo -E podman exec ews-node python3 -c \"import asyncio; from asyncua import Client; asyncio.run(Client('opc.tcp://${EWS_IP}:4840/freeopcua/server/').connect())\""
+  check "SSHD process" "sudo -E podman exec ews-node pgrep sshd"
+  check "OPC UA server process" "sudo -E podman exec ews-node pgrep python3"
+  check "Flag file" "sudo -E podman exec ews-node test -f /run/ctf/stage2_flag"
   
   echo ""
   echo "Results: ${PASS} passed, ${FAIL} failed, ${WARN} warnings"

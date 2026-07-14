@@ -86,10 +86,10 @@ validation_script: |
     fi
   }
 
-  check "Container running" "podman ps --format '{{.Names}}' | grep -q '^rtu-server$'"
+  check "Container running" "sudo -E podman ps --format '{{.Names}}' | grep -q '^rtu-server$'"
   check "IEC-104 port 2404" "timeout 5 bash -c 'echo >/dev/tcp/\${RTU_IP}/2404'"
-  check "Python process" "podman exec rtu-server sh -c 'grep -q rtu_server.py /proc/1/cmdline'"
-  check "Log file exists" "podman exec rtu-server test -f /var/log/rtu-server.log" "warning"
+  check "Python process" "sudo -E podman exec rtu-server sh -c 'grep -q rtu_server.py /proc/1/cmdline'"
+  check "Log file exists" "sudo -E podman exec rtu-server test -f /var/log/rtu-server.log" "warning"
 
   echo ""
   echo "Results: ${PASS} passed, ${FAIL} failed, ${WARN} warnings"

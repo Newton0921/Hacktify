@@ -94,13 +94,13 @@ validation_script: |
     fi
   }
 
-  check "Container running" "podman ps --format '{{.Names}}' | grep -q '^historian-srv$'"
+  check "Container running" "sudo -E podman ps --format '{{.Names}}' | grep -q '^historian-srv$'"
   check "OPC UA port 4840" "timeout 5 bash -c 'echo >/dev/tcp/\${HISTORIAN_IP}/4840'"
-  check "Python process" "podman exec historian-srv sh -c 'grep -q historian_server.py /proc/1/cmdline'"
-  check "Flag file" "podman exec historian-srv test -f /run/ctf/stage3_flag"
+  check "Python process" "sudo -E podman exec historian-srv sh -c 'grep -q historian_server.py /proc/1/cmdline'"
+  check "Flag file" "sudo -E podman exec historian-srv test -f /run/ctf/stage3_flag"
   
   # Browse check inside container to verify server is active and namespace is populated
-  BROWSE_CMD="podman exec historian-srv python3 -c \"
+  BROWSE_CMD="sudo -E podman exec historian-srv python3 -c \"
   import asyncio
   from asyncua import Client
   async def test():

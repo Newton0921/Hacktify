@@ -195,8 +195,8 @@ provision_range() {
     info "INSTANCE_SEED generated (length=${#INSTANCE_SEED})"
 
     # 4. Create/replace Podman secret
-    podman secret rm ctf_seed 2>/dev/null || true
-    echo -n "$INSTANCE_SEED" | podman secret create ctf_seed -
+    sudo -E podman secret rm ctf_seed 2>/dev/null || true
+    echo -n "$INSTANCE_SEED" | sudo -E podman secret create ctf_seed -
     info "Podman secret 'ctf_seed' created"
 
     # 5. Generate all per-instance artifact values
@@ -446,21 +446,26 @@ deploy_vpn_gateway() {
     # shellcheck disable=SC1090
     source "${RANGE_ENV}"
 
+    if ! sudo -E podman secret inspect ctf_seed &>/dev/null; then
+        info "Creating Podman secret 'ctf_seed' from range.env"
+        echo -n "${INSTANCE_SEED}" | sudo -E podman secret create ctf_seed -
+    fi
+
     info "Building vpn-gateway container image..."
 
     # Build the Dockerfile
-    podman build --network host -t vpn-gateway:latest "${VPN_DIR}/"
+    sudo -E podman build --network host -t vpn-gateway:latest "${VPN_DIR}/"
 
     # Determine subnet prefix for network creation
     local pub_net_name="public_zone_net"
 
     # Remove existing network/container if present
-    podman stop vpn-gateway 2>/dev/null || true
-    podman rm vpn-gateway 2>/dev/null || true
-    if ! podman network exists "${pub_net_name}" &>/dev/null; then
+    sudo -E podman stop vpn-gateway 2>/dev/null || true
+    sudo -E podman rm vpn-gateway 2>/dev/null || true
+    if ! sudo -E podman network exists "${pub_net_name}" &>/dev/null; then
         # Create the public zone bridge network
         info "Creating Podman bridge network: ${pub_net_name} (${PUBLIC_ZONE_SUBNET})"
-        podman network create \
+        sudo -E podman network create \
             --driver bridge \
             --subnet "${PUBLIC_ZONE_SUBNET}" \
             --gateway "$(nth_host "${PUBLIC_ZONE_SUBNET}" 1)" \
@@ -471,7 +476,7 @@ deploy_vpn_gateway() {
 
     # Start vpn-gateway container
     info "Starting vpn-gateway container at ${PUBLIC_ZONE_GATEWAY_IP}"
-    podman run -d \
+    sudo -E podman run -d \
         --name vpn-gateway \
         --hostname vpn-gateway \
         --network "${pub_net_name}:ip=${PUBLIC_ZONE_GATEWAY_IP}" \
@@ -498,7 +503,7 @@ deploy_vpn_gateway() {
 
     # Extract the generated .ovpn client profile
     local ovpn_out="${SCRIPT_DIR}/client-connect.ovpn"
-    podman cp vpn-gateway:/etc/openvpn/client/client-connect.ovpn "${ovpn_out}" 2>/dev/null || \
+    sudo -E podman cp vpn-gateway:/etc/openvpn/client/client-connect.ovpn "${ovpn_out}" 2>/dev/null || \
         warn "Could not extract .ovpn profile — container may still be initializing"
 
     if [[ -f "${ovpn_out}" ]]; then
@@ -507,7 +512,7 @@ deploy_vpn_gateway() {
 
     # Verify the flag was generated
     local flag_check
-    flag_check=$(podman exec vpn-gateway cat /run/ctf/stage1_flag 2>/dev/null) || true
+    flag_check=$(sudo -E podman exec vpn-gateway cat /run/ctf/stage1_flag 2>/dev/null) || true
     if [[ -n "${flag_check}" ]]; then
         info "Stage 1 flag verified (stored inside container at /run/ctf/stage1_flag)"
     else

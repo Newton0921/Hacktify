@@ -66,25 +66,25 @@ info "  - GOOSE APPID:          ${GOOSE_APPID}"
 info "  - SCIL Expected IOA:    ${SCIL_EXPECTED_IOA}"
 
 # 2. Build container images
-info "Building substation-gw image..."
-podman build -t substation-gw:latest "${SCRIPT_DIR}/substation-gw"
+info "Building substation-gw container image..."
+sudo -E podman build --network host -t substation-gw:latest "${SCRIPT_DIR}/substation-gw"
 
-info "Building bay-controller image..."
-podman build -t bay-controller:latest "${SCRIPT_DIR}/bay-controller"
+info "Building bay-controller container image..."
+sudo -E podman build --network host -t bay-controller:latest "${SCRIPT_DIR}/bay-controller"
 
 # 3. Network Configuration
 # 3a. Station Zone Bridge
-if ! podman network exists station_zone_net; then
+if ! sudo -E podman network exists station_zone_net; then
     info "Creating network station_zone_net with subnet ${STATION_ZONE_SUBNET}..."
-    podman network create --subnet="${STATION_ZONE_SUBNET}" station_zone_net
+    sudo -E podman network create --subnet="${STATION_ZONE_SUBNET}" station_zone_net
 else
     info "Network station_zone_net already exists."
 fi
 
 # 3b. Process Zone bridge (isolated L2 segment for GOOSE multicast)
-if ! podman network exists process_zone_net; then
+if ! sudo -E podman network exists process_zone_net; then
     info "Creating process_zone_net bridge network (isolated L2 for GOOSE)..."
-    podman network create \
+    sudo -E podman network create \
         --internal \
         --subnet="${PROCESS_ZONE_SUBNET}" \
         process_zone_net
@@ -120,16 +120,16 @@ chmod 600 "${BC_ENV_FILE}"
 
 # 5. Clean up old containers
 for name in substation-gw bay-controller; do
-    if podman ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
+    if sudo -E podman ps -a --format '{{.Names}}' | grep -q "^${name}$"; then
         warn "Removing existing ${name} container..."
-        podman stop "${name}" 2>/dev/null || true
-        podman rm "${name}" 2>/dev/null || true
+        sudo -E podman stop "${name}" 2>/dev/null || true
+        sudo -E podman rm "${name}" 2>/dev/null || true
     fi
 done
 
 # 6. Deploy containers
 info "Running substation-gw container..."
-podman run -d \
+sudo -E podman run -d \
     --name substation-gw \
     --network "station_zone_net:ip=${SUBSTATION_GW_STATION_IP}" \
     --env-file "${GW_ENV_FILE}" \
@@ -139,10 +139,10 @@ podman run -d \
 
 
 info "Connecting substation-gw to process_zone_net..."
-podman network connect process_zone_net substation-gw --ip "${PROCESS_ZONE_GATEWAY_IP}"
+sudo -E podman network connect process_zone_net substation-gw --ip "${PROCESS_ZONE_GATEWAY_IP}"
 
 info "Running bay-controller container..."
-podman run -d \
+sudo -E podman run -d \
     --name bay-controller \
     --network "station_zone_net:ip=${BAY_CONTROLLER_STATION_IP}" \
     --env-file "${BC_ENV_FILE}" \
@@ -152,7 +152,7 @@ podman run -d \
     bay-controller:latest
 
 info "Connecting bay-controller to process_zone_net..."
-podman network connect process_zone_net bay-controller --ip "${BAY_CONTROLLER_IP}"
+sudo -E podman network connect process_zone_net bay-controller --ip "${BAY_CONTROLLER_IP}"
 
 # 7. Generate Assessment Spreadsheet
 info "Generating Assessment.xlsx..."
@@ -242,21 +242,21 @@ sleep 4
 
 # Check container running status
 for name in substation-gw bay-controller; do
-    if ! podman ps --format '{{.Names}}' | grep -q "^${name}$"; then
+    if ! sudo -E podman ps --format '{{.Names}}' | grep -q "^${name}$"; then
         die "${name} container failed to start."
     fi
 done
 
 # Verify SSH on substation-gw
-if ! podman exec substation-gw ss -tlnp | grep -q ':22 '; then
+if ! sudo -E podman exec substation-gw ss -tlnp | grep -q ':22 '; then
     die "substation-gw is running but port 22 is not listening."
 fi
 
 # Verify port 102 and 9022 on bay-controller
-if ! podman exec bay-controller ss -tlnp | grep -q ':102 '; then
+if ! sudo -E podman exec bay-controller ss -tlnp | grep -q ':102 '; then
     die "bay-controller is running but MMS port 102 is not listening."
 fi
-if ! podman exec bay-controller ss -tlnp | grep -q ':9022 '; then
+if ! sudo -E podman exec bay-controller ss -tlnp | grep -q ':9022 '; then
     die "bay-controller is running but legacy scripting port 9022 is not listening."
 fi
 

@@ -40,10 +40,10 @@ done
 info "=== Stage 1 Reset ==="
 
 # Stop and remove vpn-gateway container
-if podman ps -a --format '{{.Names}}' | grep -q '^vpn-gateway$'; then
+if sudo -E podman ps -a --format '{{.Names}}' | grep -q '^vpn-gateway$'; then
     info "Stopping vpn-gateway container..."
-    podman stop vpn-gateway 2>/dev/null || true
-    podman rm vpn-gateway 2>/dev/null || true
+    sudo -E podman stop vpn-gateway 2>/dev/null || true
+    sudo -E podman rm vpn-gateway 2>/dev/null || true
     info "vpn-gateway removed"
 else
     info "vpn-gateway container not found — nothing to stop"
@@ -55,9 +55,9 @@ if [[ "$ROTATE_SEED" == "true" ]]; then
     rm -f "${RANGE_ENV}"
     rm -f "${SHARED_DIR}"/env/*.env 2>/dev/null || true
     # Remove old Podman secret
-    podman secret rm ctf_seed 2>/dev/null || true
+    sudo -E podman secret rm ctf_seed 2>/dev/null || true
     # Remove public zone network
-    podman network rm public_zone_net 2>/dev/null || true
+    sudo -E podman network rm public_zone_net 2>/dev/null || true
     info "Range state cleared"
 
     if [[ -z "$RANGE_CIDR" ]]; then

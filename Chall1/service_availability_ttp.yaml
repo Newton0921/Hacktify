@@ -111,13 +111,13 @@ validation_script: |
     fi
   }
 
-  check "Container running" "podman ps --format '{{.Names}}' | grep -q '^vpn-gateway$'"
+  check "Container running" "sudo -E podman ps --format '{{.Names}}' | grep -q '^vpn-gateway$'"
   check "SSH port 2222" "timeout 5 bash -c 'echo >/dev/tcp/127.0.0.1/2222'"
   check "SSH banner" "echo '' | timeout 5 nc 127.0.0.1 2222 | grep -q 'SSH-2.0-OpenSSH'" "warning"
-  check "OpenVPN process" "podman exec vpn-gateway pgrep openvpn"
-  check "SSHD process" "podman exec vpn-gateway pgrep sshd"
-  check "Flag file" "podman exec vpn-gateway test -f /run/ctf/stage1_flag"
-  check "Artifact file" "podman exec vpn-gateway test -s /etc/openvpn/server/field_accounts.conf"
+  check "OpenVPN process" "sudo -E podman exec vpn-gateway pgrep openvpn"
+  check "SSHD process" "sudo -E podman exec vpn-gateway pgrep sshd"
+  check "Flag file" "sudo -E podman exec vpn-gateway test -f /run/ctf/stage1_flag"
+  check "Artifact file" "sudo -E podman exec vpn-gateway test -s /etc/openvpn/server/field_accounts.conf"
 
   echo ""
   echo "Results: ${PASS} passed, ${FAIL} failed, ${WARN} warnings"

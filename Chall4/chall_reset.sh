@@ -20,10 +20,10 @@ die()   { err "$@"; exit 1; }
 info "=== Stage 4 Reset — RTU Simulator ==="
 
 # Stop and remove rtu-server container only
-if podman ps -a --format '{{.Names}}' | grep -q '^rtu-server$'; then
+if sudo -E podman ps -a --format '{{.Names}}' | grep -q '^rtu-server$'; then
     info "Stopping rtu-server container..."
-    podman stop rtu-server 2>/dev/null || true
-    podman rm rtu-server 2>/dev/null || true
+    sudo -E podman stop rtu-server 2>/dev/null || true
+    sudo -E podman rm rtu-server 2>/dev/null || true
     info "rtu-server removed"
 else
     info "rtu-server container not found — nothing to stop"

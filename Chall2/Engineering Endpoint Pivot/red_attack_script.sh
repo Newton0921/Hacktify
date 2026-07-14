@@ -104,12 +104,12 @@ EOF
 EXTRACTED_LINE=""
 
 if ! command -v sshpass &>/dev/null; then
-    warn "sshpass not installed — attempting podman exec fallback"
-    # Write python code directly to EWS container via podman exec heredoc
-    echo "$SOLVER_PY_CODE" | podman exec -i ews-node tee /tmp/solve.py &>/dev/null
+    warn "sshpass not installed — attempting sudo -E podman exec fallback"
+    # Write python code directly to EWS container via sudo -E podman exec heredoc
+    echo "$SOLVER_PY_CODE" | sudo -E podman exec -i ews-node tee /tmp/solve.py &>/dev/null
     
     # Run client inside container to target EWS_IP
-    EXTRACTED_LINE=$(podman exec ews-node python3 /tmp/solve.py "${EWS_IP}" 2>/dev/null | grep "EXTRACTED_PRODUCT_URI:") || \
+    EXTRACTED_LINE=$(sudo -E podman exec ews-node python3 /tmp/solve.py "${EWS_IP}" 2>/dev/null | grep "EXTRACTED_PRODUCT_URI:") || \
         die "Could not execute solver inside container"
 else
     # Write python code directly to EWS workstation via SSH heredoc
@@ -127,7 +127,7 @@ fi
 
 # Clean up /tmp/solve.py
 if ! command -v sshpass &>/dev/null; then
-    podman exec ews-node rm -f /tmp/solve.py &>/dev/null || true
+    sudo -E podman exec ews-node rm -f /tmp/solve.py &>/dev/null || true
 else
     sshpass -p "$SSH_PASS" ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
         "${SSH_USER}@${EWS_PUBLIC_IP}" "rm -f /tmp/solve.py" 2>/dev/null || true
@@ -155,7 +155,7 @@ info "Computed flag: ${COMPUTED_FLAG}"
 # --- Step 4: Diff against stored flag --------------------------------------
 info "Step 4: Verifying against stored flag..."
 
-STORED_FLAG=$(podman exec ews-node cat /run/ctf/stage2_flag 2>/dev/null) || \
+STORED_FLAG=$(sudo -E podman exec ews-node cat /run/ctf/stage2_flag 2>/dev/null) || \
     warn "Could not read stored flag from ews-node container"
 
 if [[ -n "${STORED_FLAG:-}" ]]; then

@@ -20,10 +20,10 @@ die()   { err "$@"; exit 1; }
 info "=== Stage 3 Reset — OPC UA Historian ==="
 
 # Stop and remove historian-srv container only
-if podman ps -a --format '{{.Names}}' | grep -q '^historian-srv$'; then
+if sudo -E podman ps -a --format '{{.Names}}' | grep -q '^historian-srv$'; then
     info "Stopping historian-srv container..."
-    podman stop historian-srv 2>/dev/null || true
-    podman rm historian-srv 2>/dev/null || true
+    sudo -E podman stop historian-srv 2>/dev/null || true
+    sudo -E podman rm historian-srv 2>/dev/null || true
     info "historian-srv removed"
 else
     info "historian-srv container not found — nothing to stop"

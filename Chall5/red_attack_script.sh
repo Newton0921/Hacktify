@@ -75,7 +75,7 @@ solve_4b() {
     info "Computed Stage 4b flag: ${COMPUTED_FLAG}"
     
     # 3. Verify against stored flag
-    STORED_FLAG=$(podman exec substation-gw cat /run/ctf/stage4b_flag 2>/dev/null) || \
+    STORED_FLAG=$(sudo -E podman exec substation-gw cat /run/ctf/stage4b_flag 2>/dev/null) || \
         warn "Could not read stored flag from substation-gw container"
         
     if [[ -n "${STORED_FLAG:-}" ]]; then
@@ -189,7 +189,7 @@ EOF
     sleep 2
     
     # 3. Verify against stored flag in bay-controller
-    STORED_FLAG=$(podman exec bay-controller cat /run/ctf/stage5a_flag 2>/dev/null) || \
+    STORED_FLAG=$(sudo -E podman exec bay-controller cat /run/ctf/stage5a_flag 2>/dev/null) || \
         warn "Could not read stored flag from bay-controller container"
         
     if [[ -n "${STORED_FLAG:-}" ]]; then
@@ -261,7 +261,7 @@ EOF
     sleep 2
     
     # 3. Verify against stored flag in bay-controller
-    STORED_FLAG=$(podman exec bay-controller cat /run/ctf/stage5b_flag 2>/dev/null) || \
+    STORED_FLAG=$(sudo -E podman exec bay-controller cat /run/ctf/stage5b_flag 2>/dev/null) || \
         warn "Could not read stored flag from bay-controller container"
         
     if [[ -n "${STORED_FLAG:-}" ]]; then

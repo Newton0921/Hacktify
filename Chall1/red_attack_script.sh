@@ -55,9 +55,9 @@ info "Step 2: Extracting field_accounts.conf via SSH..."
 
 # Check if sshpass is available
 if ! command -v sshpass &>/dev/null; then
-    warn "sshpass not installed — attempting podman exec fallback"
-    ARTIFACT_LINE=$(podman exec vpn-gateway cat /etc/openvpn/server/field_accounts.conf 2>/dev/null) || \
-        die "Could not extract artifact via SSH or podman exec"
+    warn "sshpass not installed — attempting sudo -E podman exec fallback"
+    ARTIFACT_LINE=$(sudo -E podman exec vpn-gateway cat /etc/openvpn/server/field_accounts.conf 2>/dev/null) || \
+        die "Could not extract artifact via SSH or sudo -E podman exec"
 else
     ARTIFACT_LINE=$(sshpass -p "$SSH_PASS" \
         ssh -o StrictHostKeyChecking=no \
@@ -90,7 +90,7 @@ info "Computed flag: ${COMPUTED_FLAG}"
 # --- Step 4: Diff against stored flag --------------------------------------
 info "Step 4: Verifying against stored flag..."
 
-STORED_FLAG=$(podman exec vpn-gateway cat /run/ctf/stage1_flag 2>/dev/null) || \
+STORED_FLAG=$(sudo -E podman exec vpn-gateway cat /run/ctf/stage1_flag 2>/dev/null) || \
     warn "Could not read stored flag from container"
 
 if [[ -n "${STORED_FLAG:-}" ]]; then

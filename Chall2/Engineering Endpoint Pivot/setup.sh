@@ -68,9 +68,9 @@ if [[ ! -f "${RANGE_ENV}" ]]; then
     ENGSTATION_ID="EWS-STANDALONE-99"
     FIELD_ACCT_HASH='$6$testsalt$oxMvwJ8OpQdGpJ/nRInHklXfchYSeKboxsGKhVOqCtkiXe7CV8iiYOJ8KlwraxsuBIwrEUIGSgEnLE8wsFbxy0'
     
-    # Create the ctf_seed podman secret if missing
-    podman secret rm ctf_seed 2>/dev/null || true
-    echo -n "$seed" | podman secret create ctf_seed -
+    # Create the ctf_seed sudo -E podman secret if missing
+    sudo -E podman secret rm ctf_seed 2>/dev/null || true
+    echo -n "$seed" | sudo -E podman secret create ctf_seed -
     
     cat > "${RANGE_ENV}" <<ENVEOF
 # --- Standalone Defaults for Chall2 ---
@@ -104,10 +104,10 @@ source "${RANGE_ENV}"
 [[ -n "${ENGSTATION_ID:-}" ]] || die "ENGSTATION_ID not found"
 [[ -n "${FIELD_ACCT_HASH:-}" ]] || die "FIELD_ACCT_HASH not found"
 
-# Check if podman secret ctf_seed exists, create it if missing
-if ! podman secret inspect ctf_seed &>/dev/null; then
+# Check if sudo -E podman secret ctf_seed exists, create it if missing
+if ! sudo -E podman secret inspect ctf_seed &>/dev/null; then
     info "Creating Podman secret 'ctf_seed' from range.env"
-    echo -n "${INSTANCE_SEED}" | podman secret create ctf_seed -
+    echo -n "${INSTANCE_SEED}" | sudo -E podman secret create ctf_seed -
 fi
 
 # Ensure ews-node.env exists and is up to date
@@ -127,28 +127,28 @@ chmod 600 "${SHARED_DIR}/env/ews-node.env"
 # DEPLOYMENT
 # ---------------------------------------------------------------------------
 info "Building ews-node container image..."
-podman build --network host -t ews-node:latest "${EWS_DIR}/"
+sudo -E podman build --network host -t ews-node:latest "${EWS_DIR}/"
 
 # Stop/remove existing container
-podman stop ews-node 2>/dev/null || true
-podman rm ews-node 2>/dev/null || true
+sudo -E podman stop ews-node 2>/dev/null || true
+sudo -E podman rm ews-node 2>/dev/null || true
 
 # Setup networks
 pub_net_name="public_zone_net"
 station_net_name="station_zone_net"
 
-if ! podman network exists "${pub_net_name}"; then
+if ! sudo -E podman network exists "${pub_net_name}"; then
     info "Creating bridge network: ${pub_net_name} (${PUBLIC_ZONE_SUBNET})"
-    podman network create \
+    sudo -E podman network create \
         --driver bridge \
         --subnet "${PUBLIC_ZONE_SUBNET}" \
         --gateway "$(nth_host "${PUBLIC_ZONE_SUBNET}" 1)" \
         "${pub_net_name}"
 fi
 
-if ! podman network exists "${station_net_name}"; then
+if ! sudo -E podman network exists "${station_net_name}"; then
     info "Creating bridge network: ${station_net_name} (${STATION_ZONE_SUBNET})"
-    podman network create \
+    sudo -E podman network create \
         --driver bridge \
         --subnet "${STATION_ZONE_SUBNET}" \
         --gateway "$(nth_host "${STATION_ZONE_SUBNET}" 1)" \
@@ -159,7 +159,7 @@ fi
 EWS_PUBLIC_IP=$(nth_host "${PUBLIC_ZONE_SUBNET}" 3)
 
 info "Starting ews-node container at public zone IP: ${EWS_PUBLIC_IP}"
-podman run -d \
+sudo -E podman run -d \
     --name ews-node \
     --hostname ews-node \
     --network "${pub_net_name}:ip=${EWS_PUBLIC_IP}" \
@@ -171,20 +171,20 @@ podman run -d \
 
 # Connect to OT/Station zone network
 info "Connecting ews-node to ${station_net_name} at OT zone IP: ${EWS_IP}"
-podman network connect "${station_net_name}" ews-node --ip "${EWS_IP}"
+sudo -E podman network connect "${station_net_name}" ews-node --ip "${EWS_IP}"
 
 # Connect to OT zone network if it exists or create it
 ot_net_name="ot_zone_net"
-if ! podman network exists "${ot_net_name}" &>/dev/null; then
+if ! sudo -E podman network exists "${ot_net_name}" &>/dev/null; then
     info "Creating Podman bridge network: ${ot_net_name} (${OT_ZONE_SUBNET:-10.100.1.0/24})"
-    podman network create \
+    sudo -E podman network create \
         --driver bridge \
         --subnet "${OT_ZONE_SUBNET:-10.100.1.0/24}" \
         --gateway "$(nth_host "${OT_ZONE_SUBNET:-10.100.1.0/24}" 1)" \
         "${ot_net_name}"
 fi
 info "Connecting ews-node to ${ot_net_name}"
-podman network connect "${ot_net_name}" ews-node 2>/dev/null || true
+sudo -E podman network connect "${ot_net_name}" ews-node --ip "10.100.1.254" 2>/dev/null || true
 
 # Ensure host's forwarding policy (e.g. Docker's FORWARD DROP) doesn't block traffic
 if command -v iptables &>/dev/null; then
@@ -196,7 +196,7 @@ info "Waiting for container initialization..."
 sleep 5
 
 # Verify flag was generated inside
-flag_check=$(podman exec ews-node cat /run/ctf/stage2_flag 2>/dev/null) || true
+flag_check=$(sudo -E podman exec ews-node cat /run/ctf/stage2_flag 2>/dev/null) || true
 if [[ -n "${flag_check}" ]]; then
     info "Stage 2 flag verified (stored inside container at /run/ctf/stage2_flag)"
 else

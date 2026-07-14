@@ -190,7 +190,7 @@ info "Computed flag: ${COMPUTED_FLAG}"
 # --- Step 4: Diff against stored flag --------------------------------------
 info "Step 4: Verifying against stored flag..."
 
-STORED_FLAG=$(podman exec historian-srv cat /run/ctf/stage3_flag 2>/dev/null) || \
+STORED_FLAG=$(sudo -E podman exec historian-srv cat /run/ctf/stage3_flag 2>/dev/null) || \
     warn "Could not read stored flag from container"
 
 if [[ -n "${STORED_FLAG:-}" ]]; then
