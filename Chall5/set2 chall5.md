@@ -9,7 +9,7 @@ Use the same field technician credentials:
 ```shell
 ssh field_tech@10.100.2.254
 ```
-<img width="1413" height="906" alt="image" src="https://github.com/user-attachments/assets/9bd6e8c5-850e-4b18-9e7e-8bc2fd9397be" />
+
 
 
 Password:
