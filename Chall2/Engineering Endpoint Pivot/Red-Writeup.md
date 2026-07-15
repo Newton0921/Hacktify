@@ -141,6 +141,7 @@ Command:
 ```bash
 nc 127.0.0.1 9002
 ```
+<img width="581" height="132" alt="image" src="https://github.com/user-attachments/assets/f7a023a9-5f26-4a67-885b-a054e6a5ccbd" />
 
 When prompted, enter the ProductUri extracted in Step 4.
 
