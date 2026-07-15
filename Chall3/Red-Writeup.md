@@ -19,59 +19,6 @@ The tree is deliberately built with:
 
 The objective is to recover the exact `Description` attribute of the privileged node and use it to compute the stage flag.
 
----
-
-### Why Recursive Browsing Is Required — Design Rationale
-
-#### The Flat-Browse Trap
-
-A naive player who connects an OPC UA client and browses only the top-level objects will see:
-
-```
-Objects/
-  └─ <TAG_NAMESPACE_PREFIX>/
-       └─ Substation/
-            └─ Bay/
-                 ├─ Bay01_Feeder/
-                 ├─ Bay02_Transformer/
-                 ├─ ...
-                 └─ Bay12_BESS/
-```
-
-At this point, each bay folder contains 8 equipment groups, and each group contains 5–15 variable nodes. A player who stops here will find **hundreds of telemetry decoys** but **not the privileged node**, because it is buried two additional levels deeper:
-
-```
-Bay/<chosen_bay>/<chosen_group>/Config/DeviceRegistry/<privileged_var>
-```
-
-#### Depth Layering Strategy
-
-| Depth | Content | Count |
-|-------|---------|-------|
-| 1 | `<TAG_NAMESPACE_PREFIX>` root folder | 1 |
-| 2 | `Substation` folder | 1 |
-| 3 | `Bay` root → individual bay folders | 12 |
-| 4 | Equipment group folders (`Protection`, `Measurement`, `Control`, `Communication`, `Diagnostics`, `Monitoring`, `Maintenance`, `HistoricalLog`) | 8 per bay = 96 |
-| 4–5 | Telemetry variable nodes (decoys) | 5–15 per group = 480–1440 total |
-| 5 | Sub-folders (`Archive`, `Config`, `Runtime`, `Parameters`) in select groups | 1–3 per eligible group |
-| 5–6 | Deeper variable nodes in sub-folders | 3–8 per sub-folder |
-| 6 | `DeviceRegistry` inner folder (single instance) | 1 |
-| 6 | **Privileged node** (`*_DeviceRegistry_RemoteUnit`) | 1 |
-
-The privileged node is intentionally placed inside `Config/DeviceRegistry/` — a path that mimics real IEC 61850 or IEC 60870-5-104 device configuration hierarchies. This makes it appear as a legitimate configuration record rather than a standalone flag artifact.
-
-#### Why Flat Scanning Fails
-
-1. **Top-level browse** returns only the prefix folder — no variables.
-2. **One-level-deep browse** returns `Substation` — still no variables.
-3. **Two-level browse** returns `Bay` and bay folders — still folders.
-4. **Three-level browse** returns equipment groups — first variables appear, but all are telemetry decoys.
-5. **Four-level browse** returns sub-folders in some groups — more variables, but the privileged node is inside `DeviceRegistry` (depth 6).
-
-Only a **full recursive browse** (or targeted descent into `Config` sub-trees) reaches the privileged node.
-
----
-
 ### Intended Solve Path (Step-by-Step)
 
 #### Step 1: OPC UA Service Discovery
