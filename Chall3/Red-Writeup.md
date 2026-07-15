@@ -172,27 +172,13 @@ sudo ./red_attack_script.sh
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 1. Check the historian container
 
 On the Parrot host:
 
 sudo podman ps -a --filter name=historian-srv
+<img width="781" height="112" alt="image" src="https://github.com/user-attachments/assets/2d957b8e-ce01-40ca-81ce-948b7099cd87" />
+
 
 It should show Up.
 
@@ -236,6 +222,7 @@ Expected:
 10.100.1.2:4840 open
 
 If this fails, the OT-zone networking is not connected correctly.
+<img width="746" height="61" alt="image" src="https://github.com/user-attachments/assets/42ce35d8-32c6-457a-be65-5d9f95822b0c" />
 
 4. Remove any old tunnel
 
@@ -250,6 +237,8 @@ sudo ss -lntp | grep ':4840'
 sudo ip addr add 10.100.1.2/32 dev lo 2>/dev/null || true
 
 Verify:
+<img width="776" height="176" alt="image" src="https://github.com/user-attachments/assets/6e19b3d4-fa60-413c-b3fa-18b92fe048d4" />
+
 
 ip addr show dev lo | grep 10.100.1.2
 6. Create a fresh tunnel
