@@ -122,4 +122,7 @@ Enter Stage 1 Artifact (content of field_accounts.conf): field_tech:$6$MGVkNWJlY
 ACCESS GRANTED. Flag: FLAG{S1-1655b2bfebbf0896}
 ```
 
+<img width="887" height="156" alt="image" src="https://github.com/user-attachments/assets/bc43e762-54fa-4781-98e3-e7578db3cf28" />
+
+
 ![Successful flag retrieval from the local oracle service](images/step-4-flag-oracle.png)
