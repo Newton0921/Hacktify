@@ -31,6 +31,7 @@ STEP 2 — Locate sensitive configuration database
 Command:
 
 ls -la /etc/openvpn/server/
+
 Expected output:
 
 -rw-r----- 1 field_tech field_tech 137 field_accounts.conf
@@ -38,7 +39,9 @@ STEP 3 — Extract evidence artifact
 Command:
 
 cat /etc/openvpn/server/field_accounts.conf
+
 Expected output:
+
 
 field_tech:$6$MGVkNWJlYWFkM2Fj$oxMvwJ8OpQdGpJ/nRInHklXfchYSeKboxsGKhVOqCtkiXe7CV8iiYOJ8KlwraxsuBIwrEUIGSgEnLE8wsFbxy0:19000:0:99999:7:::
 This line (the full entry) is the Stage 1 artifact.
