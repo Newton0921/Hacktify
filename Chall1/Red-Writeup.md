@@ -72,7 +72,9 @@ Run:
 
 ```bash
 ls -la /etc/openvpn/server/
-```
+
+```<img width="762" height="187" alt="image" src="https://github.com/user-attachments/assets/4e3831a4-27fd-4a87-bd90-892144a306e7" />
+
 
 ![Directory listing showing the readable field_accounts.conf file](images/step-2-directory-listing.png)
 
