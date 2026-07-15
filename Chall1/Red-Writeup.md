@@ -91,6 +91,7 @@ Run:
 ```bash
 cat /etc/openvpn/server/field_accounts.conf
 ```
+<img width="903" height="112" alt="image" src="https://github.com/user-attachments/assets/566e2f59-a925-4e7a-8a74-6d6e9c8ea941" />
 
 ![Contents of the field_accounts.conf credential file](images/step-3-credentials-file.png)
 
